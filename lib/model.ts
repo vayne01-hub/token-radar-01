@@ -118,6 +118,7 @@ export interface BoardRow {
   model: {
     category_multiple: number;
     peer_count: number;
+    peer_scope: 'category' | 'global';
     growth_multiplier: number;
     maturity_multiplier: number;
     breadth_multiplier: number;
@@ -263,8 +264,9 @@ export function impliedValue(
   asOf: string,
   table: { byCategory: Map<string, { multiple: number; peers: number }>; global: number; globalPeers: number },
   model: ModelConstants = MODEL,
-): { implied: number; multiple: number; peers: number; growthMult: number; maturityMult: number; breadthMult: number; productMult: number; age: number | null } {
-  const priced = (p.category !== null ? table.byCategory.get(p.category) : undefined) ?? { multiple: table.global, peers: table.globalPeers };
+): { implied: number; multiple: number; peers: number; peerScope: 'category' | 'global'; growthMult: number; maturityMult: number; breadthMult: number; productMult: number; age: number | null } {
+  const own = p.category !== null ? table.byCategory.get(p.category) : undefined;
+  const priced = own ?? { multiple: table.global, peers: table.globalPeers };
   const growthPct = Math.min(model.growth_cap_pct, Math.max(model.growth_floor_pct, finite(p.change_7d, 0)));
   const growthMult = Math.max(model.growth_mult_floor, 1 + (growthPct / 100) * model.growth_weight);
   const age = ageDays(asOf, p.listed_at);
@@ -273,7 +275,7 @@ export function impliedValue(
   const breadthMult = 1 + model.breadth_per_chain * Math.min(Math.max(p.chains.length - 1, 0), model.breadth_max_extra_chains);
   const productMult = isProduct(p) ? model.product_multiple : 1;
   const implied = Math.max(1, Math.round(p.tvl_usd * priced.multiple * growthMult * maturityMult * breadthMult * productMult));
-  return { implied, multiple: priced.multiple, peers: priced.peers, growthMult, maturityMult, breadthMult, productMult, age };
+  return { implied, multiple: priced.multiple, peers: priced.peers, peerScope: own !== undefined ? 'category' : 'global', growthMult, maturityMult, breadthMult, productMult, age };
 }
 
 /** The snapshot's protocol by slug. */
@@ -315,6 +317,7 @@ export function buildBoard(snapshot: Snapshot, model: ModelConstants = MODEL): B
     model: {
       category_multiple: round4(s.multiple),
       peer_count: s.peers,
+      peer_scope: s.peerScope,
       growth_multiplier: round4(s.growthMult),
       maturity_multiplier: round4(s.maturityMult),
       breadth_multiplier: round4(s.breadthMult),

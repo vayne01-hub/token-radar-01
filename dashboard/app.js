@@ -246,7 +246,9 @@
     d.appendChild(el('h3', null, 'How the model prices it'));
     var m = r.model;
     d.appendChild(mrow('TVL, the base', fmtUsd(r.tvl_usd)));
-    d.appendChild(mrow('Category multiple — median mcap/TVL of ' + m.peer_count + ' launched peers', '× ' + m.category_multiple.toFixed(3)));
+    d.appendChild(mrow(m.peer_scope === 'category'
+      ? 'Category multiple — median mcap/TVL of ' + m.peer_count + ' launched ' + (r.category || '') + ' peers'
+      : 'Category multiple — ' + (r.category || 'this category') + ' has too few launched peers, so the global median across ' + m.peer_count + ' launched protocols', '× ' + m.category_multiple.toFixed(3)));
     d.appendChild(mrow('Growth — 7d change of ' + fmtPct(r.change_7d) + ', weight ' + M.growth_weight, '× ' + m.growth_multiplier.toFixed(3)));
     d.appendChild(mrow('Maturity — ' + fmtAge(r.age_days) + ' live with no token', '× ' + m.maturity_multiplier.toFixed(3)));
     d.appendChild(mrow('Breadth — ' + r.chains.length + ' chain' + (r.chains.length === 1 ? '' : 's'), '× ' + m.breadth_multiplier.toFixed(3)));
