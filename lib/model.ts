@@ -2,10 +2,12 @@
 //
 // The board ranks every protocol that records no token and is farmable as a launch candidate:
 // the snapshot's 40-slug watchlist (the floor, never the ceiling) plus every other pre-token
-// protocol that is not an exchange (CEX) and not a versioned pool of another protocol. Protocols
-// whose token already trades are never ranked: they are set aside as the live set, shown at the
-// market's own values, and — this is the model's engine — they are the evidence the implied
-// values are priced from.
+// protocol the field guide's own tests leave standing. Set aside as not-a-launch, and never
+// ranked: exchanges (CEX), official chain bridges (Canonical Bridge), products that carry an
+// exchange's name (Binance, Coinbase, Bybit, Kraken, Bitget, OKX, Bitfinex, Gemini) and versioned
+// pools of another protocol. Protocols whose token already trades are never ranked either: they
+// are set aside as the live set, shown at the market's own values, and — this is the model's
+// engine — they are the evidence the implied values are priced from.
 //
 // Implied value follows only from the snapshot's own figures. For each category, the model takes
 // the token-bearing protocols in that category and computes the median of mcap_usd / tvl_usd:
@@ -21,8 +23,10 @@
 //   maturityMult      0.75 + 0.45 x (1 - exp(-ageYears / 1.8)): a protocol that has run for years
 //                     with no token has proved the TVL is real; the curve saturates near 1.20
 //   breadthMult       1 + 0.03 x min(chains - 1, 8): distribution across chains is worth a little
-//   productMult       0.35 when the record marks the protocol as a wrapped, staked or bridged
-//                     product of another protocol (its launch, if any, is a spin-off's, not its own)
+//   productMult       0.08 when the record marks the protocol as a wrapped, staked or bridged
+//                     product of another protocol: such a launch, if it ever comes, is a spin-off
+//                     of the parent's value, so it is priced at 8% of its category's rate and
+//                     flagged on the board, never allowed to pose as a fresh launch
 //
 // No protocol name is ever special-cased: the same functions score every row, and every constant
 // above is a model constant, printed in the dashboard next to the board it produced.
@@ -82,7 +86,7 @@ export const MODEL: ModelConstants = {
   unknown_age_years: 1,
   breadth_per_chain: 0.03,
   breadth_max_extra_chains: 8,
-  product_multiple: 0.35,
+  product_multiple: 0.08,
 };
 
 /** The model's version label: the dashboard names it and the board's rows carry it. */
@@ -153,6 +157,7 @@ export interface RadarData {
   board_size: number;
   early_size: number;
   product_size: number;
+  excluded_size: number;
   live_size: number;
   global_multiple: number;
   rows: RadarRow[];
@@ -204,9 +209,16 @@ export function isProduct(p: SnapshotProtocol): boolean {
   return (p.category !== null && PRODUCT_CATEGORIES.has(p.category)) || PRODUCT_NAME.test(p.name);
 }
 
-/** Whether a protocol may be ranked at all: pre-token, not an exchange, not a versioned pool. */
+/** The exchanges the field guide names: a product carrying one's name is the exchange's, not a launch. */
+const EXCHANGE_PREFIX = /^(Binance|Coinbase|Bybit|Kraken|Bitget|OKX|Bitfinex|Gemini)\b/;
+
+/**
+ * Whether a protocol may be ranked at all: pre-token, and not set aside by the field guide's own
+ * tests — not an exchange, not an official chain bridge, not an exchange's named product, and not
+ * a versioned pool of another protocol.
+ */
 export function isRankable(p: SnapshotProtocol): boolean {
-  return isPreToken(p) && p.category !== 'CEX' && !VERSIONED.test(p.name);
+  return isPreToken(p) && p.category !== 'CEX' && p.category !== 'Canonical Bridge' && !EXCHANGE_PREFIX.test(p.name) && !VERSIONED.test(p.name);
 }
 
 /** The median of a non-empty list of numbers. */
@@ -447,7 +459,10 @@ function actionsFor(p: SnapshotProtocol, capital: number, chain: string): Action
  */
 export function farmSteps(p: SnapshotProtocol, age: number | null, onWatchlist: boolean): string[] {
   const chain = p.chains.length > 0 ? p.chains[0]! : 'its main chain';
-  const gas = gasProfile(chain);
+  // Gas is priced on the first programmable chain the record names: a bridge whose first listed
+  // chain is the asset's home chain (Bitcoin, Zcash) is still farmed from its EVM side.
+  const gasChain = p.chains.find((c) => !['bitcoin', 'zcash', 'dogecoin', 'litecoin'].includes(c.toLowerCase())) ?? chain;
+  const gas = gasProfile(gasChain);
   const capital = capitalFor(p);
   const hold = holdDaysFor(age);
   const acts = actionsFor(p, capital, chain);
@@ -512,6 +527,7 @@ export function buildRadar(snapshot: Snapshot, model: ModelConstants = MODEL): {
     board_size: board.length,
     early_size: board.filter((r) => r.tier === 'early').length,
     product_size: board.filter((r) => r.tier === 'product').length,
+    excluded_size: snapshot.protocols.filter((p) => isPreToken(p) && !isRankable(p)).length,
     live_size: live.length,
     global_multiple: round4(table.global),
     rows: board.map((r) => ({
