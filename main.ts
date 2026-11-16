@@ -1,7 +1,7 @@
 // Launch Radar (token-radar-01): a Node 22 program, standard library only.
 //
 // It reads the sealed snapshot from /input/snapshot.json (or --input <file|dir>), prices every
-// farmable pre-token protocol with the radar-2 model in lib/model.ts, writes the ranked board to
+// farmable pre-token protocol with the radar-3 model in lib/model.ts, writes the ranked board to
 // /output/board.json, writes the dashboard's data to /output/data.js, copies this repository's
 // dashboard/ and screenshots/ into /output, and finishes with /output/dossier.json, built by the
 // vendored make.fun library from the very files the gate will re-read.
