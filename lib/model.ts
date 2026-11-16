@@ -33,10 +33,11 @@
 //   maturityMult      0.75 + 0.45 x (1 - exp(-ageYears / 1.8)): a protocol that has run for years
 //                     with no token has proved the TVL is real; the curve saturates near 1.20
 //   breadthMult       1 + 0.03 x min(chains - 1, 8): distribution across chains is worth a little
-//   productMult       0.08 when the record marks the protocol as a wrapped, staked or bridged
-//                     product of another protocol: such a launch, if it ever comes, is a spin-off
-//                     of the parent's value, so it is priced at 8% of its category's rate and
-//                     flagged on the board, never allowed to pose as a fresh launch
+//   productMult       0.01 when the record marks the protocol as a wrapped, staked or bridged
+//                     product of another protocol: a wrapped or bridged product's own launch is
+//                     a relisting of a token that already trades, priced at 1% of its peer value
+//                     and flagged on the board, never allowed to pose as a fresh launch or to
+//                     sit in the pre-token top ranks on the parent asset's size
 //
 // Around the point value the model also carries the peer band: the same price recomputed at the
 // category's 25th and 75th percentile multiples. The snapshot's launched peers disperse widely
@@ -119,7 +120,7 @@ export const MODEL: ModelConstants = {
   unknown_age_years: 1,
   breadth_per_chain: 0.03,
   breadth_max_extra_chains: 8,
-  product_multiple: 0.08,
+  product_multiple: 0.01,
   signal_maturity_weight: 0.4,
   signal_momentum_weight: 0.3,
   signal_breadth_weight: 0.15,
