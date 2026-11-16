@@ -322,7 +322,7 @@
     d.appendChild(mrow('Growth \u2014 7d change of ' + fmtPct(r.change_7d) + ', weight ' + M.growth_weight, '\u00D7 ' + m.growth_multiplier.toFixed(3)));
     d.appendChild(mrow('Maturity \u2014 ' + fmtAge(r.age_days) + ' live with no token', '\u00D7 ' + m.maturity_multiplier.toFixed(3)));
     d.appendChild(mrow('Breadth \u2014 ' + r.chains.length + ' chain' + (r.chains.length === 1 ? '' : 's'), '\u00D7 ' + m.breadth_multiplier.toFixed(3)));
-    if (m.product_multiplier !== 1) d.appendChild(mrow('Product discount \u2014 a spin-off\u2019s launch, not its own', '\u00D7 ' + m.product_multiplier.toFixed(2)));
+    if (m.product_multiplier !== 1) d.appendChild(mrow('Product discount \u2014 a spin-off\u2019s launch, not its own', '\u00D7 ' + m.product_multiplier.toFixed(3)));
     d.appendChild(mrow('Implied value', fmtUsd(r.implied_value_usd)));
     d.appendChild(mrow('At the band\u2019s edges', fmtUsd(r.implied_low_usd) + ' \u2013 ' + fmtUsd(r.implied_high_usd)));
     d.appendChild(el('h3', null, 'The farm plan'));
