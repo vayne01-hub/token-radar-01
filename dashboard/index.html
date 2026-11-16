@@ -61,7 +61,7 @@
     <li><b>Growth.</b> growth = max(0.55, 1 + 0.6 &times; clamp(change_7d, &minus;50, 100) / 100).</li>
     <li><b>Maturity.</b> maturity = 0.75 + 0.45 &times; (1 &minus; exp(&minus;age_years / 1.8)); a protocol with no recorded age counts as 1 year.</li>
     <li><b>Breadth.</b> breadth = 1 + 0.03 &times; min(chains &minus; 1, 8).</li>
-    <li><b>Product rule.</b> product = 0.01 when the record marks a wrapped, staked or bridged product of another protocol, else 1: a wrapped or bridged product's own launch is a relisting of a token that already trades, priced at 1% of its peer value.</li>
+    <li><b>Product rule.</b> product = 0.005 when the record marks a wrapped, staked or bridged product of another protocol, else 1: a wrapped or bridged product's own launch is a relisting of a token that already trades, priced at 0.5% of its peer value.</li>
     <li><b>Implied value.</b> implied = TVL &times; base &times; agreement &times; growth &times; maturity &times; breadth &times; product, rounded to whole dollars and floored at $1. The band beside each price is the same arithmetic with the base replaced by the peers' 25th- and 75th-percentile multiples.</li>
     <li><b>Signal, 0&ndash;100.</b> 100 &times; (0.40 &times; age percentile + 0.30 &times; 7-day momentum percentile + 0.15 &times; chain-breadth percentile + 0.15 &times; TVL standing inside its category), every percentile taken against this board's own rows.</li>
   </ol>
