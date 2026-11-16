@@ -41,9 +41,9 @@
 //   maturityMult      0.75 + 0.45 x (1 - exp(-ageYears / 1.8)): a protocol that has run for years
 //                     with no token has proved the TVL is real; the curve saturates near 1.20
 //   breadthMult       1 + 0.03 x min(chains - 1, 8): distribution across chains is worth a little
-//   productMult       0.01 when the record marks the protocol as a wrapped, staked or bridged
+//   productMult       0.005 when the record marks the protocol as a wrapped, staked or bridged
 //                     product of another protocol: a wrapped or bridged product's own launch is
-//                     a relisting of a token that already trades, priced at 1% of its peer value
+//                     a relisting of a token that already trades, priced at 0.5% of its peer value
 //                     and flagged on the board, never allowed to pose as a fresh launch or to
 //                     sit in the pre-token top ranks on the parent asset's size
 //
@@ -129,7 +129,7 @@ export const MODEL: ModelConstants = {
   unknown_age_years: 1,
   breadth_per_chain: 0.03,
   breadth_max_extra_chains: 8,
-  product_multiple: 0.01,
+  product_multiple: 0.005,
   agreement_spread_threshold: 2,
   signal_maturity_weight: 0.4,
   signal_momentum_weight: 0.3,
