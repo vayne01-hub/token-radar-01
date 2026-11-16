@@ -50,6 +50,26 @@
   <p class="empty hidden" id="empty">No protocol matches those filters. Loosen one and the radar sweeps again.</p>
 </main>
 
+<section class="appendix" id="appendix" aria-label="How every price is made">
+  <h2>How every price is made</h2>
+  <p class="appnote">The exact derivation, with the model's own constants. Nothing is priced by name: the same functions score every row, and a row's detail view repeats this arithmetic with its own figures filled in.</p>
+  <ol class="formulas">
+    <li><b>Anchor A — the median multiple.</b> Over the category's launched peers (token-bearing, TVL &gt; 0): A = median(mcap<sub>i</sub> / TVL<sub>i</sub>). A category needs at least 3 peers; below that, the global peer set prices the row and the detail view says so.</li>
+    <li><b>Anchor B — the size fit.</b> Least squares over the same peers: log(mcap) = a + b&middot;log(TVL), slope b clamped to [0.4, 1.6]. It needs at least 8 peers and speaks only inside the peers' own TVL range, widened &times;4. B = the fitted market cap at this row's TVL, divided by that TVL.</li>
+    <li><b>Base multiple.</b> base = clamp( A &times; sqrt(clamp(B/A, 0.5, 2)), 0.03, 2.5 ): the fit may move the median by at most &times;1.41 either way. Where there is no fit, base = clamp(A, 0.03, 2.5).</li>
+    <li><b>Anchor agreement.</b> spread = max(A, B) / min(A, B). When spread &gt; 2, agreement = 1 / (1 + log<sub>10</sub>(spread)); otherwise agreement = 1. A price the two anchors cannot agree on is discounted for the disagreement itself.</li>
+    <li><b>Growth.</b> growth = max(0.55, 1 + 0.6 &times; clamp(change_7d, &minus;50, 100) / 100).</li>
+    <li><b>Maturity.</b> maturity = 0.75 + 0.45 &times; (1 &minus; exp(&minus;age_years / 1.8)); a protocol with no recorded age counts as 1 year.</li>
+    <li><b>Breadth.</b> breadth = 1 + 0.03 &times; min(chains &minus; 1, 8).</li>
+    <li><b>Product rule.</b> product = 0.01 when the record marks a wrapped, staked or bridged product of another protocol, else 1: a wrapped or bridged product's own launch is a relisting of a token that already trades, priced at 1% of its peer value.</li>
+    <li><b>Implied value.</b> implied = TVL &times; base &times; agreement &times; growth &times; maturity &times; breadth &times; product, rounded to whole dollars and floored at $1. The band beside each price is the same arithmetic with the base replaced by the peers' 25th- and 75th-percentile multiples.</li>
+    <li><b>Signal, 0&ndash;100.</b> 100 &times; (0.40 &times; age percentile + 0.30 &times; 7-day momentum percentile + 0.15 &times; chain-breadth percentile + 0.15 &times; TVL standing inside its category), every percentile taken against this board's own rows.</li>
+  </ol>
+  <h3>The peer table this page carries</h3>
+  <p class="appnote">The launched peers behind every anchor, as this page's own data holds them — the evidence strip above the board samples the first eight. Multiples are market cap per $1 of TVL.</p>
+  <div id="peertable"></div>
+</section>
+
 <aside class="drawer hidden" id="drawer" aria-label="Protocol detail"></aside>
 <div class="scrim hidden" id="scrim"></div>
 

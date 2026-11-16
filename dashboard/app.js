@@ -53,16 +53,14 @@
     $('stats').appendChild(d);
   });
 
-  /* — the model, stated on the page it produced — */
+  /* — the model, stated on the page it produced: two lines here, the full derivation in the
+       "How every price is made" appendix below the board — */
   $('modelbar').innerHTML =
-    '<span class="fx">MODEL ' + esc(D.model_version) + '</span> &nbsp;implied = TVL &times; <b>base multiple</b> &times; <b>growth</b> ' +
-    '(7d TVL change, weight ' + M.growth_weight + ') &times; <b>maturity</b> (years live with no token, saturating) &times; <b>breadth</b> ' +
-    '(chains) &times; <b>' + M.product_multiple + '</b> if a wrapped, staked or bridged product of another. The base multiple blends ' +
-    '<b>two anchors</b> read off the same launched peers: their <b>median mcap/TVL</b> and a <b>power-law size fit</b> ' +
-    '(needs ' + M.fit_min_peers + '+ peers; the global median ' + D.global_multiple.toFixed(3) + ' stands in where a category is thin). ' +
-    'Every row also carries the <b>peer band</b> \u2014 the price at the peers\u2019 25th\u201375th percentile multiples \u2014 and a ' +
-    '<b>signal score</b>: years without a token, momentum, footprint and category standing, 0\u2013100 against this board, independent of size. ' +
-    'Nothing is priced by name: the same functions score every row.';
+    '<span class="fx">MODEL ' + esc(D.model_version) + '</span> &nbsp;implied = TVL &times; <b>base multiple</b> &times; <b>growth</b> &times; ' +
+    '<b>maturity</b> &times; <b>breadth</b> &times; <b>product</b>. The base blends two anchors \u2014 the launched peers\u2019 <b>median mcap/TVL</b> ' +
+    'and a <b>power-law size fit</b> \u2014 discounted when the anchors disagree.<br>' +
+    'Product rule: a wrapped or bridged product\u2019s own launch is a relisting of a token that already trades, priced at <b>' +
+    (M.product_multiple * 100) + '% of its peer value</b>. Exact formulas and the peer table: <b>How every price is made</b>, below the board.';
 
   /* — the evidence strip: what the market pays per $1 of TVL, by category — */
   (function renderEvidence() {
@@ -83,6 +81,31 @@
       strip.appendChild(chip);
     });
     wrap.appendChild(strip);
+  })();
+
+  /* — the appendix's peer table: every category this page carries, exactly as data.js holds it — */
+  (function renderPeerTable() {
+    var wrap = $('peertable');
+    if (!wrap) return;
+    var t = el('table', 'peers');
+    var thead = el('thead'), htr = el('tr');
+    ['Category', 'Launched peers', 'P25', 'Median', 'P75'].forEach(function (h, i) {
+      htr.appendChild(el('th', i >= 1 ? 'num' : '', h));
+    });
+    thead.appendChild(htr);
+    t.appendChild(thead);
+    var tb = el('tbody');
+    D.categories.forEach(function (c) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, c.category));
+      tr.appendChild(el('td', 'num', String(c.peers)));
+      tr.appendChild(el('td', 'num', c.p25.toFixed(2) + '\u00D7'));
+      tr.appendChild(el('td', 'num', c.median.toFixed(2) + '\u00D7'));
+      tr.appendChild(el('td', 'num', c.p75.toFixed(2) + '\u00D7'));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    wrap.appendChild(t);
   })();
 
   /* — filters — */
