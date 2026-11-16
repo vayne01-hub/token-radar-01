@@ -612,6 +612,8 @@ export function planSummary(p: SnapshotProtocol, age: number | null): PlanSummar
 interface ActionPair {
   open: string;
   weekly: string;
+  /** One extra step only this category's farmers need, when the category has one. */
+  extra?: string;
 }
 
 /** The category's core farm actions, written for the protocol and chain they name. */
@@ -622,11 +624,15 @@ function actionsFor(p: SnapshotProtocol, capital: number, chain: string): Action
     return {
       open: `Supply $${capital} of USDC to ${n}'s main lending market on ${chain}, then borrow about 30% of it back and re-supply once, so the wallet shows both sides of the market.`,
       weekly: `Repay and re-borrow a small slice on ${n} each week to keep the position active without changing its size.`,
+      extra: `Work the supply/borrow loop on ${n} deliberately: once a month, repay the borrowed slice in full and borrow it again at the same size, and check the position's health factor stays above 1.6, so the wallet's history shows the borrow market used repeatedly and a volatile week cannot liquidate the farm. Cost: gas only, about one weekly action. Time: 15 minutes a month.`,
     };
   if (c.includes('dex') || c.includes('aggregator'))
     return {
       open: `Add $${capital} of liquidity to ${n}'s busiest stable or ETH pool on ${chain}, then route two small swaps a week through ${n}'s own interface rather than an aggregator.`,
       weekly: `Make two swaps of $25-50 through ${n} each week and claim any pool fees back into the position.`,
+      extra: c.includes('yield')
+        ? `Rotate once a quarter on ${n}: move a quarter of the position into ${n}'s next-best vault on ${chain} for a week, then move it back, so the wallet has history in more than one vault without ever leaving the protocol. Cost: gas on two moves a quarter. Time: 20 minutes a quarter.`
+        : `Choose the LP pair and range on ${n} by its own numbers: add the position to the fee tier that holds most of ${n}'s volume on ${chain}, set a range around the current price rather than full range, and write the range in the farm log so an out-of-range week is caught at the weekly check, not discovered months later. Cost: included in the $${capital} position. Time: 15 minutes.`,
     };
   if (c.includes('perpetual') || c.includes('derivative') || c.includes('options'))
     return {
@@ -637,11 +643,13 @@ function actionsFor(p: SnapshotProtocol, capital: number, chain: string): Action
     return {
       open: `Bridge $${capital} of USDC from Ethereum to ${chain} through ${n}, then use the bridged funds in one app on the far side instead of bridging straight back.`,
       weekly: `Make one return bridge of $25-50 through ${n} each fortnight so the wallet's history spans several weeks.`,
+      extra: `Build volume in both directions on ${n}: after the first crossing, send a smaller amount back over ${n} the following week and forward again later in the month, varying the size each time, so the route reads as genuine two-way use of ${chain} rather than a single round trip. Cost: bridge fees on $25-50 a crossing. Time: 10 minutes a crossing.`,
     };
   if (c.includes('staking') || c.includes('restak'))
     return {
       open: `Stake $${capital} of the underlying asset through ${n} on ${chain} and keep the liquid receipt token in the same wallet, unstaked and visible.`,
       weekly: `Restake or compound the rewards on ${n} once a week; never move the receipt token to a fresh wallet.`,
+      extra: `Join ${n}'s points programme from inside its own app and link this wallet before the first stake settles, then claim or confirm points on the programme's own schedule; for a staking launch the points record, not the stake alone, is what a snapshot usually reads. Cost: $0 to join. Time: 10 minutes, then 5 minutes a claim.`,
     };
   if (c.includes('curator') || c.includes('allocator') || c.includes('indexes'))
     return {
@@ -652,6 +660,7 @@ function actionsFor(p: SnapshotProtocol, capital: number, chain: string): Action
     return {
       open: `Deposit $${capital} into ${n}'s main yield vault on ${chain} and leave auto-compounding on, so the share balance grows in place.`,
       weekly: `Harvest or re-stake the yield on ${n} once a week so the wallet books a claim transaction, not just a deposit.`,
+      extra: `Rotate once a quarter on ${n}: move a quarter of the position into ${n}'s next-best vault on ${chain} for a week, then move it back, so the wallet has history in more than one vault without ever leaving the protocol. Cost: gas on two moves a quarter. Time: 20 minutes a quarter.`,
     };
   if (c.includes('rwa') || c.includes('real world'))
     return {
@@ -731,6 +740,7 @@ export function farmSteps(p: SnapshotProtocol, age: number | null, onWatchlist: 
     `Set up one fresh wallet for ${p.name} and fund it on ${gas.label} with ${gas.fund} for gas, keeping the seed phrase offline and never reusing this wallet for unrelated apps. Cost: ${gas.fund} plus a ${gas.perTx} first transaction. Time: 10 minutes.`,
     `${acts.open} Cost: $${capital} of capital, gas about ${gas.perTx} a transaction. Time: 15 minutes to set up.`,
     `${acts.weekly} Cost: about ${gas.perTx} a week in gas. Time: 10 minutes a week.${multi}`,
+    ...(acts.extra !== undefined ? [acts.extra] : []),
     `Hold the ${p.name} position for at least ${hold} days so the activity spans more than one snapshot of the protocol's records. ${trend} Cost: the $${capital} stays deployed; withdraw early only if the app changes its terms. Time: ${hold} days.`,
     `Open ${p.name}'s own points, rewards or governance page inside its app and link this wallet there; claim only from links the app itself publishes, and never pay a fee to claim. Cost: $0 to check. Time: 10 minutes.`,
     `Keep a farm log for ${p.name}: wallet address, deposit dates, weekly actions and the position's size, so you can prove the history or unwind it cleanly. Cost: $0. Time: 5 minutes a week.`,
