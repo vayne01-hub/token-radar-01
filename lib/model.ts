@@ -26,7 +26,15 @@
 //                                   peers actually span, widened fourfold; outside it the median
 //                                   prices the row alone. The blend is clamped to [0.03, 2.5].
 //
-//   implied = tvl_usd x baseMultiple x growthMult x maturityMult x breadthMult x productMult
+//   implied = tvl_usd x baseMultiple x agreementMult x growthMult x maturityMult x breadthMult
+//             x productMult
+//
+//   agreementMult     1 / (1 + log10(anchor spread)) when the two anchors diverge by more than
+//                     the agreement threshold (x2): where the median and the size fit cannot
+//                     agree on a price, the row is discounted for the disagreement itself —
+//                     at a x6.5 spread the factor is about x0.55 — and the detail view shows
+//                     it as its own line. At or below the threshold the anchors agree closely
+//                     enough that the factor is 1 and no discount is taken.
 //
 //   growthMult        1 + 0.6 x clamp(change_7d, -50, 100) / 100, floored at 0.55: a hot week
 //                     lifts the price, a bad week cannot zero it
@@ -94,6 +102,7 @@ export interface ModelConstants {
   breadth_per_chain: number;
   breadth_max_extra_chains: number;
   product_multiple: number;
+  agreement_spread_threshold: number;
   signal_maturity_weight: number;
   signal_momentum_weight: number;
   signal_breadth_weight: number;
@@ -121,6 +130,7 @@ export const MODEL: ModelConstants = {
   breadth_per_chain: 0.03,
   breadth_max_extra_chains: 8,
   product_multiple: 0.01,
+  agreement_spread_threshold: 2,
   signal_maturity_weight: 0.4,
   signal_momentum_weight: 0.3,
   signal_breadth_weight: 0.15,
@@ -178,6 +188,7 @@ export interface BoardRow {
     maturity_multiplier: number;
     breadth_multiplier: number;
     product_multiplier: number;
+    anchor_agreement_multiplier: number;
   };
   farm_steps: string[];
 }
@@ -405,7 +416,7 @@ export function impliedValue(
   anchorMultiple: number; medianMultiple: number; fitMultiple: number | null;
   p25: number; p75: number; spread: number;
   peers: number; peerScope: 'category' | 'global';
-  growthMult: number; maturityMult: number; breadthMult: number; productMult: number; age: number | null;
+  growthMult: number; maturityMult: number; breadthMult: number; productMult: number; agreementMult: number; age: number | null;
 } {
   const own = p.category !== null ? table.byCategory.get(p.category) : undefined;
   const stats = own ?? table.global;
@@ -418,6 +429,9 @@ export function impliedValue(
     ? clampMultiple(medianMultiple * Math.sqrt(Math.min(model.fit_blend_cap, Math.max(model.fit_blend_floor, fit / medianMultiple))), model)
     : medianMultiple;
   const spread = fit !== null ? Math.max(medianMultiple, fit) / Math.min(medianMultiple, fit) : 1;
+  // The agreement discount: past the threshold, the wider the two anchors part, the less of the
+  // blended price the row keeps — log-scaled, so a x10 disagreement costs about half, not all.
+  const agreementMult = spread > model.agreement_spread_threshold ? 1 / (1 + Math.log10(spread)) : 1;
   const growthPct = Math.min(model.growth_cap_pct, Math.max(model.growth_floor_pct, finite(p.change_7d, 0)));
   const growthMult = Math.max(model.growth_mult_floor, 1 + (growthPct / 100) * model.growth_weight);
   const age = ageDays(asOf, p.listed_at);
@@ -425,7 +439,7 @@ export function impliedValue(
   const maturityMult = model.maturity_base + model.maturity_range * (1 - Math.exp(-years / model.maturity_tau_years));
   const breadthMult = 1 + model.breadth_per_chain * Math.min(Math.max(p.chains.length - 1, 0), model.breadth_max_extra_chains);
   const productMult = isProduct(p) ? model.product_multiple : 1;
-  const rest = growthMult * maturityMult * breadthMult * productMult;
+  const rest = growthMult * maturityMult * breadthMult * productMult * agreementMult;
   const implied = Math.max(1, Math.round(p.tvl_usd * anchorMultiple * rest));
   const low = Math.min(implied, Math.max(1, Math.round(p.tvl_usd * clampMultiple(stats.p25, model) * rest)));
   const high = Math.max(implied, Math.max(1, Math.round(p.tvl_usd * clampMultiple(stats.p75, model) * rest)));
@@ -434,7 +448,7 @@ export function impliedValue(
     anchorMultiple, medianMultiple, fitMultiple: fit,
     p25: stats.p25, p75: stats.p75, spread,
     peers: stats.peers, peerScope: own !== undefined ? 'category' : 'global',
-    growthMult, maturityMult, breadthMult, productMult, age,
+    growthMult, maturityMult, breadthMult, productMult, agreementMult, age,
   };
 }
 
@@ -534,6 +548,7 @@ export function buildBoard(snapshot: Snapshot, model: ModelConstants = MODEL): B
       maturity_multiplier: round4(s.maturityMult),
       breadth_multiplier: round4(s.breadthMult),
       product_multiplier: s.productMult,
+      anchor_agreement_multiplier: round4(s.agreementMult),
     },
     farm_steps: farmSteps(s.p, s.age, watch.has(s.p.slug), s.implied),
   }));
