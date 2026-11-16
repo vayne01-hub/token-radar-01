@@ -57,10 +57,10 @@
        "How every price is made" appendix below the board — */
   $('modelbar').innerHTML =
     '<span class="fx">MODEL ' + esc(D.model_version) + '</span> &nbsp;implied = TVL &times; <b>base multiple</b> &times; <b>growth</b> &times; ' +
-    '<b>maturity</b> &times; <b>breadth</b> &times; <b>product</b>. The base blends two anchors \u2014 the launched peers\u2019 <b>median mcap/TVL</b> ' +
-    'and a <b>power-law size fit</b> \u2014 discounted when the anchors disagree.<br>' +
+    '<b>maturity</b> &times; <b>breadth</b> &times; <b>product</b>. The base blends the peers\u2019 <b>median mcap/TVL</b> ' +
+    'and a <b>power-law size fit</b>.<br>' +
     'Product rule: a wrapped or bridged product\u2019s own launch is a relisting of a token that already trades, priced at <b>' +
-    (M.product_multiple * 100) + '% of its peer value</b>. Exact formulas and the peer table: <b>How every price is made</b>, below the board.';
+    (M.product_multiple * 100) + '% of its peer value</b>. Full formulas below.';
 
   /* — the evidence strip: what the market pays per $1 of TVL, by category — */
   (function renderEvidence() {
